@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "100441927901",
+    "project_id": "room-rover-r-resrv-be",
+    "storage_bucket": "room-rover-r-resrv-be.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:100441927901:android:47eff9db185c5ce32eab34",
+        "android_client_info": {
+          "package_name": "com.example.room_rover"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjNucT-Q0hW83CoYXzJDuBQb1oeu-COFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
