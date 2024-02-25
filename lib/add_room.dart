@@ -16,6 +16,7 @@ class _AddRoomState extends State<AddRoom> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _roomNoController = TextEditingController();
   final TextEditingController _monthlyRentController = TextEditingController();
 
   List<File> roomImages = [];
@@ -109,6 +110,17 @@ class _AddRoomState extends State<AddRoom> {
                   return null;
                 },
               ),
+              TextFormField(
+                keyboardType: TextInputType.number,
+                controller: _roomNoController,
+                decoration: const InputDecoration(labelText: 'Number of Rooms'),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the number of rooms for your apartment';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: 16),
               TextFormField(
                 controller: _monthlyRentController,
@@ -149,6 +161,8 @@ class _AddRoomState extends State<AddRoom> {
                       'location': _locationController.text,
                       'rent': _monthlyRentController.text,
                       'ownerId': userRef.currentUser!.uid,
+                      'noOfRooms': _roomNoController.text,
+                      'occupiedRooms': 0,
                       'ownerName': widget.userData['username'],
                       'ownerContact': widget.userData['contact'],
                     });

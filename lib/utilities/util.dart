@@ -62,3 +62,13 @@ Widget loading(
     return snapshot.data ?? const Text('Image not found');
   }
 }
+
+Widget asyncBuilder(context, snapshot) {
+  if (snapshot.connectionState == ConnectionState.waiting) {
+    return const Center(child: CircularProgressIndicator());
+  } else if (snapshot.hasError) {
+    return Text('Error: ${snapshot.error}');
+  } else {
+    return snapshot.data ?? const Text('Image not found');
+  }
+}

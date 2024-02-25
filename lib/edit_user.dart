@@ -1,31 +1,53 @@
-import 'utilities/util.dart';
-import 'utilities/server_util.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-class RegisterForm extends StatefulWidget {
-  const RegisterForm({super.key});
+import 'utilities/server_util.dart';
+import 'utilities/util.dart';
+
+class EditUser extends StatefulWidget {
+  const EditUser({super.key});
+
   @override
-  State<RegisterForm> createState() => _RegisterFormState();
+  State<EditUser> createState() => _EditUserState();
 }
 
-class _RegisterFormState extends State<RegisterForm> {
+class _EditUserState extends State<EditUser> {
+  StreamSubscription? userStream;
+  getUser() {
+    userStream = dbref
+        .child('users/${userRef.currentUser!.uid}')
+        .onValue
+        .listen((event) {
+      if (event.snapshot.value != null) {
+        var result = (event.snapshot.value as Map).cast<String, dynamic>();
+        setState(() {
+          _firstNameController.text = result['firstName'];
+          _lastNameController.text = result['lastName'];
+          _usernameController.text = result['username'];
+        });
+      }
+    });
+  }
+
+  @override
+  void initState() {
+    getUser();
+    super.initState();
+  }
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
 
   Map<String, dynamic> userData = {};
-  Map<String, dynamic> authData = {};
   bool success = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Register')),
+        appBar: AppBar(title: const Text('Update User Details')),
         body: SingleChildScrollView(
             child: Center(
                 child: SizedBox(
@@ -88,116 +110,67 @@ class _RegisterFormState extends State<RegisterForm> {
                             },
                           ),
                           SizedBox(height: 16),
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              } else if (!isEmailValidated(value)) {
-                                return 'Invalid email format';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 16),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Password',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
-                              }
-                              // Add password validation logic here if needed
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 16),
-                          TextFormField(
-                            controller: _confirmPasswordController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Confirm Password',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please confirm your password';
-                              } else if (value != _passwordController.text) {
-                                return 'Passwords do not match';
-                              }
-                              return null;
-                            },
-                          ),
-                          SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: () async {
                               if (_formKey.currentState!.validate()) {
                                 // Form is valid, save data to formData map
                                 setState(() {
-                                  authData = {
-                                    'email': _emailController.text,
-                                    'password': _passwordController.text,
-                                  };
                                   userData = {
                                     'firstName': _firstNameController.text,
                                     'lastName': _lastNameController.text,
                                     'username': _usernameController.text,
-                                    'type': 'user'
                                   };
                                 });
                                 try {
-                                  await userRef.createUserWithEmailAndPassword(
-                                      email: authData['email'],
-                                      password: authData['password']);
-                                  await userRef.signInWithEmailAndPassword(
-                                      email: authData['email'],
-                                      password: authData['password']);
-                                  await dbref
+                                  dbref
                                       .child(
                                           'users/${userRef.currentUser!.uid}')
-                                      .set(userData);
-                                  await userRef.signOut();
+                                      .update(userData);
                                   setState(() {
                                     success = true;
                                   });
-                                  _formKey.currentState!.reset();
-                                  _firstNameController.clear();
-                                  _lastNameController.clear();
-                                  _usernameController.clear();
-                                  _emailController.clear();
-                                  _passwordController.clear();
-                                  _confirmPasswordController.clear();
+                                  var result = await dbref
+                                      .child('rooms/')
+                                      .orderByChild('ownerId')
+                                      .equalTo(userRef.currentUser!.uid)
+                                      .get();
+
+                                  var roomData = (result.value as Map)
+                                      .cast<String, dynamic>();
+                                  roomData.forEach((key, value) async {
+                                    await dbref.child('rooms/$key').update({
+                                      'ownerName': _usernameController.text
+                                    });
+                                  });
                                 } catch (e) {
                                   debugPrint(e.toString());
                                 }
 
                                 // You can use the formData map as needed (e.g., send it to the server)
-                                debugPrint(authData.toString());
+
                                 debugPrint(userData.toString());
                               }
                             },
-                            child: const Text('Register'),
+                            child: const Text('Submit'),
                           ),
                           Visibility(
                               visible: success,
                               child: Padding(
                                 padding: const EdgeInsets.all(10),
                                 child: Text(
-                                  'Registration Success',
+                                  'Edit Success',
                                   style: TextStyle(color: Colors.green[700]),
                                 ),
                               ))
                         ],
                       ),
                     )))));
+  }
+
+  @override
+  void deactivate() {
+    // TODO: implement deactivate
+    super.deactivate();
+    userStream!.cancel();
   }
 }

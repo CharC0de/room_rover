@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:room_rover/settings.dart';
 import 'package:room_rover/user_details.dart';
 import 'utilities/server_util.dart';
+import 'utilities/util.dart';
 import 'add_room.dart';
 import 'room_details.dart';
 
@@ -21,6 +23,7 @@ class _DashboardState extends State<Dashboard> {
   Map userData = {};
   Map roomData = {};
   Map searchData = {};
+  bool edit = false;
   final _formKey = GlobalKey<FormState>();
   getUserData() {
     userStream = dbref
@@ -73,16 +76,6 @@ class _DashboardState extends State<Dashboard> {
         child: SizedBox(height: 200, width: double.infinity, child: pic));
   }
 
-  Widget asyncBuilder(context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const CircularProgressIndicator();
-    } else if (snapshot.hasError) {
-      return Text('Error: ${snapshot.error}');
-    } else {
-      return snapshot.data ?? const Text('Image not found');
-    }
-  }
-
   @override
   void initState() {
     getUserData();
@@ -96,7 +89,7 @@ class _DashboardState extends State<Dashboard> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: TextField(
+        title: (TextField(
             controller: _searchController,
             onChanged: (value) {
               debugPrint(searchData.toString());
@@ -115,16 +108,30 @@ class _DashboardState extends State<Dashboard> {
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.search),
               labelText: ' Search Room Name',
-            )),
+            ))),
         actions: [
+          if (userData['type'] == 'owner')
+            IconButton(
+                onPressed: () {
+                  setState(() {
+                    edit = !edit;
+                  });
+                  if (edit) {
+                    searchData = Map.fromEntries(searchData.entries.where(
+                        (element) =>
+                            element.value['ownerId'] ==
+                            userRef.currentUser!.uid));
+                  } else {
+                    searchData = roomData;
+                  }
+                },
+                icon: Icon(edit ? Icons.cancel : Icons.edit)),
           IconButton(
               onPressed: () {
                 Navigator.of(context).push(MaterialPageRoute(
-                    builder: (context) => UserDetailsScreen(
-                          userData: userData,
-                        )));
+                    builder: (context) => Settings(userData: userData)));
               },
-              icon: const Icon(Icons.person)),
+              icon: const Icon(Icons.settings)),
           IconButton(
               onPressed: () {
                 userRef.signOut();
@@ -140,9 +147,15 @@ class _DashboardState extends State<Dashboard> {
                 var roomId = searchData.keys.elementAt(index);
                 var room = searchData[roomId];
                 return ListTile(
+                    trailing: edit
+                        ? IconButton(
+                            onPressed: () async {
+                              await dbref.child('rooms/$roomId').remove();
+                            },
+                            icon: const Icon(Icons.delete))
+                        : null,
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) =>
-                            RoomDetails(roomData: room, roomId: roomId))),
+                        builder: (context) => RoomDetails(roomId: roomId))),
                     title: Card(
                       clipBehavior: Clip.antiAliasWithSaveLayer,
                       shape: RoundedRectangleBorder(
